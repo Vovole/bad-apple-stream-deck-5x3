@@ -15,7 +15,7 @@ function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 
-// STOP quand une touche est pressée
+
 deck.on("down", keyIndex => {
 
     console.log(`STOPPED ON KEY ${keyIndex}`);
@@ -57,7 +57,7 @@ async function play() {
 
             const remaining = frameTime - elapsed;
 
-            // laisse Node gérer les events HID
+
             await sleep(Math.max(1, remaining));
         }
     }
