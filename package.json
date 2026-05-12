@@ -1,0 +1,20 @@
+{
+  "name": "badapple-streamdeck",
+  "version": "1.0.0",
+  "description": "Bad Apple on Stream Deck",
+  "main": "index.js",
+  "bin": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "elgato-stream-deck": "^3.4.0",
+    "sharp": "^0.34.5"
+  },
+  "pkg": {
+    "assets": [
+      "compiled/**/*"
+    ]
+  }
+}
