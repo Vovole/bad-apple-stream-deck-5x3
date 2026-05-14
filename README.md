@@ -90,7 +90,7 @@ This allows the project to:
 * save them to disk
 * reuse them later for optimized playback
 
-* index.js is in the repo then you can fully replace it
+* base.js is in the repo then you can fully replace it
 ---
 
 # Video Preparation
