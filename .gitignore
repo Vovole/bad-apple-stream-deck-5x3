@@ -1,0 +1,11 @@
+node_modules/
+
+compiled/*
+!compiled/.gitkeep
+
+packets/*
+!packets/.gitkeep
+
+*.mp4
+*.gif
+*.zip

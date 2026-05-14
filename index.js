@@ -1,66 +1,85 @@
-const StreamDeck = require("elgato-stream-deck");
-const fs = require("fs");
-const path = require("path");
-
-const deck = StreamDeck.openStreamDeck();
-
-const compiledDir = path.join(__dirname, "compiled");
-
-const frames = fs.readdirSync(compiledDir)
-    .sort((a, b) => Number(a) - Number(b));
-
-let running = true;
-
-function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-}
-
-// STOP quand une touche est pressée
-deck.on("down", keyIndex => {
-
-    console.log(`STOPPED ON KEY ${keyIndex}`);
-
-    running = false;
-
-    deck.clearAllKeys();
-
-    process.exit(0);
-});
-
-async function play() {
-
-    console.log("PLAYING");
-
-    const targetFPS = 20;
-    const frameTime = 1000 / targetFPS;
-
-    while (running) {
-
-        for (const frame of frames) {
-
-            if (!running) return;
-
-            const start = performance.now();
-
-            const framePath = path.join(compiledDir, frame);
-
-            for (let key = 0; key < 15; key++) {
-
-                const buffer = fs.readFileSync(
-                    path.join(framePath, `${key}.bin`)
-                );
-
-                deck.fillImage(key, buffer);
-            }
-
-            const elapsed = performance.now() - start;
-
-            const remaining = frameTime - elapsed;
-
-            // laisse Node gérer les events HID
-            await sleep(Math.max(1, remaining));
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const HID = require("node-hid");
+const models_1 = require("./models");
+var models_2 = require("./models");
+exports.DeviceModelId = models_2.DeviceModelId;
+/*
+ * The original StreamDeck uses packet sizes too large for the hidraw driver which is
+ * the default on linux. https://github.com/node-hid/node-hid/issues/249
+ */
+HID.setDriverType('libusb');
+/**
+ * List detected devices
+ */
+function listStreamDecks() {
+    const devices = [];
+    for (const dev of HID.devices()) {
+        const model = models.find(m => m.productId === dev.productId);
+        if (model && dev.vendorId === 0x0fd9 && dev.path) {
+            devices.push({
+                model: model.id,
+                path: dev.path,
+                serialNumber: dev.serialNumber
+            });
         }
     }
+    return devices;
 }
-
-play();
+exports.listStreamDecks = listStreamDecks;
+/**
+ * Get the info of a device if the given path is a streamdeck
+ */
+function getStreamDeckInfo(path) {
+    return listStreamDecks().find(dev => dev.path === path);
+}
+exports.getStreamDeckInfo = getStreamDeckInfo;
+const models = [
+    {
+        id: models_1.DeviceModelId.ORIGINAL,
+        productId: 0x0060,
+        class: models_1.StreamDeckOriginal
+    },
+    {
+        id: models_1.DeviceModelId.MINI,
+        productId: 0x0063,
+        class: models_1.StreamDeckMini
+    },
+    {
+        id: models_1.DeviceModelId.XL,
+        productId: 0x006c,
+        class: models_1.StreamDeckXL
+    },
+    {
+        id: models_1.DeviceModelId.ORIGINALV2,
+        productId: 0x006d,
+        class: models_1.StreamDeckOriginalV2
+    },
+    {
+        id: models_1.DeviceModelId.ORIGINALMK2,
+        productId: 0x0080,
+        class: models_1.StreamDeckOriginalMK2
+    }
+];
+function openStreamDeck(devicePath, userOptions) {
+    let foundDevices = listStreamDecks();
+    if (devicePath) {
+        foundDevices = foundDevices.filter(d => d.path === devicePath);
+    }
+    if (foundDevices.length === 0) {
+        if (devicePath) {
+            throw new Error(`Device "${devicePath}" was not found`);
+        }
+        else {
+            throw new Error('No Stream Decks are connected.');
+        }
+    }
+    // Clone the options, to ensure they dont get changed
+    const options = Object.assign({}, userOptions);
+    const model = models.find(m => m.id === foundDevices[0].model);
+    if (!model) {
+        throw new Error('Stream Deck is of unexpected type.');
+    }
+    return new model.class(foundDevices[0], options);
+}
+exports.openStreamDeck = openStreamDeck;
