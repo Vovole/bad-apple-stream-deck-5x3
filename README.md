@@ -41,6 +41,10 @@ cd streamdeck-video-player
 Install dependencies:
 
 ```bash id="4q7fph"
+mkdir frames
+```
+
+```bash id="4q7fph"
 npm install
 ```
 
