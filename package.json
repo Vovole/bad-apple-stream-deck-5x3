@@ -8,5 +8,6 @@
   },
   "dependencies": {
     "elgato-stream-deck": "^4.1.1"
+    "sharp": "^0.34.5"
   }
 }
