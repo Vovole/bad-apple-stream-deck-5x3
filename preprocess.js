@@ -1,80 +1,97 @@
-const sharp = require("sharp");
+const StreamDeck = require("elgato-stream-deck");
 const fs = require("fs");
 const path = require("path");
 
-const WIDTH = 72;
-const HEIGHT = 72;
+const deck = StreamDeck.openStreamDeck();
 
-const framesDir = "./frames";
-const outputDir = "./compiled";
+const compiledDir =
+    path.join(__dirname, "compiled");
+
+const outputDir =
+    path.join(__dirname, "packets");
 
 if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir);
 }
 
-const frames = fs.readdirSync(framesDir)
-    .filter(f => f.endsWith(".png"))
-    .sort();
+const originalWrite =
+    deck.device.write.bind(deck.device);
 
-async function processFrame(frameName, index) {
+deck.device.write = function(packet)
+{
+    if (!global.currentPacketDir)
+        return originalWrite(packet);
 
-    const framePath = path.join(framesDir, frameName);
+    const packetPath =
+        path.join(
+            global.currentPacketDir,
+            `${global.packetIndex}.bin`
+        );
 
-    const frameFolder = path.join(outputDir, index.toString());
+    fs.writeFileSync(packetPath, packet);
 
-    if (!fs.existsSync(frameFolder)) {
-        fs.mkdirSync(frameFolder);
-    }
+    global.packetIndex++;
 
-    const image = sharp(framePath).removeAlpha();
+    return originalWrite(packet);
+};
 
-    for (let y = 0; y < 3; y++) {
+async function build()
+{
+    const frames =
+        fs.readdirSync(compiledDir)
+        .sort((a, b) => Number(a) - Number(b));
 
-        for (let x = 0; x < 5; x++) {
+    for (const frame of frames)
+    {
+        console.log(
+            `BUILD FRAME ${frame}`
+        );
 
-            const keyIndex = y * 5 + x;
+        const framePath =
+            path.join(compiledDir, frame);
 
-            const raw = await image
-                .clone()
-                .extract({
-                    left: x * WIDTH,
-                    top: y * HEIGHT,
-                    width: WIDTH,
-                    height: HEIGHT
-                })
-                .raw()
-                .toBuffer();
+        const frameOutput =
+            path.join(outputDir, frame);
 
-            const converted = Buffer.alloc(WIDTH * HEIGHT * 3);
+        if (!fs.existsSync(frameOutput)) {
+            fs.mkdirSync(frameOutput);
+        }
 
-            let j = 0;
+        for (let key = 0; key < 15; key++)
+        {
+            global.packetIndex = 0;
 
-            for (let i = 0; i < raw.length; i += 3) {
+            global.currentPacketDir =
+                path.join(
+                    frameOutput,
+                    `key${key}`
+                );
 
-                // RGB -> BGR
-                converted[j++] = raw[i + 2];
-                converted[j++] = raw[i + 1];
-                converted[j++] = raw[i];
+            if (
+                !fs.existsSync(
+                    global.currentPacketDir
+                )
+            ) {
+                fs.mkdirSync(
+                    global.currentPacketDir
+                );
             }
 
-            fs.writeFileSync(
-                path.join(frameFolder, `${keyIndex}.bin`),
-                converted
-            );
+            const buffer =
+                fs.readFileSync(
+                    path.join(
+                        framePath,
+                        `${key}.bin`
+                    )
+                );
+
+            deck.fillImage(key, buffer);
         }
     }
 
-    console.log(`DONE ${index + 1}/${frames.length}`);
+    console.log("DONE");
+
+    process.exit(0);
 }
 
-async function main() {
-
-    for (let i = 0; i < frames.length; i++) {
-
-        await processFrame(frames[i], i);
-    }
-
-    console.log("ALL DONE");
-}
-
-main();
+build();
