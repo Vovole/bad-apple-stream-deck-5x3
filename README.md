@@ -101,11 +101,7 @@ Place your video inside the project folder:
 badapple.mp4
 ```
 
-Create the frames directory:
-
-```bash id="65zqv8"
-mkdir frames
-```
+Use the frames directory:
 
 Extract video frames using FFmpeg:
 
@@ -207,8 +203,6 @@ Press any key on the Stream Deck to stop playback.
 
 ```bash id="76m4jg"
 npm install
-
-mkdir frames
 
 ffmpeg -i badapple.mp4 -vf scale=360:216,fps=20 frames/frame_%05d.png
 

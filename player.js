@@ -12,6 +12,7 @@ const packetsDir =
 
 const frames =
     fs.readdirSync(packetsDir)
+    .filter(f => !f.startsWith("."))
     .sort((a, b) => Number(a) - Number(b));
 
 function sleep(ms)

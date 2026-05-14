@@ -39,6 +39,7 @@ async function build()
 {
     const frames =
         fs.readdirSync(compiledDir)
+        .filter(f => !f.startsWith("."))
         .sort((a, b) => Number(a) - Number(b));
 
     for (const frame of frames)
