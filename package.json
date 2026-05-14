@@ -7,6 +7,6 @@
     "play": "node player.js"
   },
   "dependencies": {
-    "elgato-stream-deck": "^5.0.0"
+    "elgato-stream-deck": "^4.1.1"
   }
 }
